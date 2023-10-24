@@ -70,8 +70,9 @@ def get_income_stats(income: pd.DataFrame, years=5):
         "gross": get_series_stats(income.loc["Gross Profit"], dispersion_metrics=False, years=years),
         "gross_margin": get_series_stats(income.loc["Gross Profit"] / income.loc["Revenues"], years=years),
         "gross_sga_margin": get_series_stats(-income.loc["Selling General & Admin Expenses"] / income.loc["Gross Profit"], years=years),
-        "gross_depreciation_margin": get_series_stats(-income.loc["Depreciation & Amortization"] / income.loc["Gross Profit"], years=years),
+        "gross_depreciation_margin": get_series_stats(-income.loc["Depreciation & Amortization"] / income.loc["Gross Profit"] if "Depreciation & Amortization" in income.index else pd.Series(index=income.columns, dtype=int), years=years),
         "operating_income": get_series_stats(income.loc["Operating Income"], years=years, dispersion_metrics=False),
+        "operating_margin": get_series_stats(income.loc["Operating Income"] / income.loc["Revenues"], years=years),
         "interest_expense_margin": get_series_stats(-income.loc["Interest Expense"] / income.loc["Operating Income"], years=years),
         "net_income": get_series_stats(income.loc["Net Income"], dispersion_metrics=False, years=years),
         "net_income_margin": get_series_stats(income.loc["Net Income"] / income.loc["Revenues"], years=years),
@@ -79,6 +80,27 @@ def get_income_stats(income: pd.DataFrame, years=5):
 
     return result
     # return { ("%s_%s" % (k, vk)): result[k][vk] for k in result.keys() for vk in result[k].keys() }
+
+
+def get_balance_stats(income: pd.DataFrame, balance: pd.DataFrame, years=5):
+    result = {
+        "cash": get_series_stats(balance.loc["Cash And Equivalents"], years=years),
+        "inventory_margin": get_series_stats(balance.loc["Inventory"] / income.loc["Revenues"], years=years),
+        "accounts_recv_margin": get_series_stats(balance.loc["Accounts Receivable"] / income.loc["Revenues"], years=years), # TIKR provides NET Accounts Receivables under this name
+        "current_ratio": get_series_stats(balance.loc["Total Current Assets"] / balance.loc["Total Current Liabilities"], years=years),
+        "goodwill": get_series_stats(balance.loc["Goodwill"], years=years),
+        "assets": get_series_stats(balance.loc["Total Assets"], years=years),
+        "roa": get_series_stats(income.loc["Net Income"] / balance.loc["Total Assets"], years=years),
+        "net_debt": get_series_stats(balance.loc["Net Debt"], years=years),
+        "debt_to_earnings": get_series_stats(balance.loc["Net Debt"] / income.loc["Net Income"], years=years),
+        "debt_to_equity": get_series_stats(balance.loc["Net Debt"] / balance.loc["Total Equity"], years=years),
+        "pref_shares": get_series_stats(balance.loc["Total Preferred Equity"] if "Total Preferred Equity" in balance.index else pd.Series(index=balance.columns, dtype=int), years=years),
+        "retained_earnings": get_series_stats(balance.loc["Retained Earnings"], years=years, dispersion_metrics=False),
+        "treasury_stock": get_series_stats(balance.loc["Treasury Stock"] if "Treasury Stock" in balance.index else pd.Series(index=balance.columns, dtype=int), years=years),
+        "roe": get_series_stats(income.loc["Net Income"] / balance.loc["Total Equity"], years=years),
+    }
+
+    return result
 
 
 def format_yy_growth_list(yy_growth: list):
@@ -95,8 +117,6 @@ def format_yy_growth_list(yy_growth: list):
     yy_growth_adjusted = [x if not np.isnan(x) else 0 for x in yy_growth]
     return template.render(lst=yy_growth_adjusted, items=len(yy_growth), max_val=np.max(np.abs(yy_growth_adjusted)), scaling=10 if any([x < 0 for x in yy_growth]) else 20)
 
-def format_me(x):
-    return float(x) + 1
 
 dfs = pd.read_html("data/tikr/Texas Roadhouse, Inc. (TXRH).html")
 
@@ -105,5 +125,8 @@ balance = parse_table(dfs[1])
 cashflow = parse_table(dfs[2])
 
 # table = pd.DataFrame.from_dict({'TXRH': get_income_stats(income)}, 'index')
-table = pd.DataFrame(get_income_stats(income)).T
-print(table.to_html(escape=False, formatters={ 'yy_growth': format_yy_growth_list, 'series': format_yy_growth_list } ))
+income_table = pd.DataFrame(get_income_stats(income)).T
+print(income_table.to_html(escape=False, formatters={ 'yy_growth': format_yy_growth_list, 'series': format_yy_growth_list } ))
+
+balance_table = pd.DataFrame(get_balance_stats(income, balance)).T
+print(balance_table.to_html(escape=False, formatters={ 'yy_growth': format_yy_growth_list, 'series': format_yy_growth_list } ))
