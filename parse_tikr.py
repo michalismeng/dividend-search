@@ -29,12 +29,14 @@ def replacetonumbeR(s):
 
 
 def parse_table(t):
+    t = t.dropna(how='all')
     t = t.set_index(t.columns[0])
-    t = t.dropna(how='all').dropna(how='all', axis=1)
+    t = t.dropna(how='all', axis=1)
     t = t.drop([c for c in t.index if "YoY" in c])
     t = t.rename(columns=parse_date)
     t = t.applymap(lambda x:replacetonumbeR(x))
     t = t.astype(float)
+    t = t.fillna(0)
     return t
 
 
@@ -70,12 +72,18 @@ def get_income_stats(income: pd.DataFrame, years=5):
         "gross": get_series_stats(income.loc["Gross Profit"], dispersion_metrics=False, years=years),
         "gross_margin": get_series_stats(income.loc["Gross Profit"] / income.loc["Revenues"], years=years),
         "gross_sga_margin": get_series_stats(-income.loc["Selling General & Admin Expenses"] / income.loc["Gross Profit"], years=years),
-        "gross_depreciation_margin": get_series_stats(-income.loc["Depreciation & Amortization"] / income.loc["Gross Profit"] if "Depreciation & Amortization" in income.index else pd.Series(index=income.columns, dtype=int), years=years),
+        "gross_depreciation_margin": get_series_stats(-income.loc["Depreciation & Amortization"] / income.loc["Gross Profit"], years=years),
+        "gross_r&d_margin": get_series_stats(-income.loc["R&D Expenses"] / income.loc["Gross Profit"], years=years),
         "operating_income": get_series_stats(income.loc["Operating Income"], years=years, dispersion_metrics=False),
         "operating_margin": get_series_stats(income.loc["Operating Income"] / income.loc["Revenues"], years=years),
         "interest_expense_margin": get_series_stats(-income.loc["Interest Expense"] / income.loc["Operating Income"], years=years),
         "net_income": get_series_stats(income.loc["Net Income"], dispersion_metrics=False, years=years),
         "net_income_margin": get_series_stats(income.loc["Net Income"] / income.loc["Revenues"], years=years),
+        "diluted_shares": get_series_stats(income.loc["Weighted Average Diluted Shares Outstanding"], years=years, dispersion_metrics=False),
+        "eps": get_series_stats(income.loc["Net Income"] / income.loc["Weighted Average Diluted Shares Outstanding"], dispersion_metrics=False, years=years),
+        "dividends": get_series_stats(income.loc["Dividends Per Share"], years=years),
+        "payout": get_series_stats(income.loc["Dividends Per Share"] * income.loc["Weighted Average Diluted Shares Outstanding"] / income.loc["Net Income"], years=years),
+        "missing_dividend_years": get_series_stats(pd.Series(((income.loc["Dividends Per Share"] == 0)|(income.loc["Dividends Per Share"].isna())).sum(), index=income.columns)),
     }
 
     return result
@@ -94,10 +102,26 @@ def get_balance_stats(income: pd.DataFrame, balance: pd.DataFrame, years=5):
         "net_debt": get_series_stats(balance.loc["Net Debt"], years=years),
         "debt_to_earnings": get_series_stats(balance.loc["Net Debt"] / income.loc["Net Income"], years=years),
         "debt_to_equity": get_series_stats(balance.loc["Net Debt"] / balance.loc["Total Equity"], years=years),
-        "pref_shares": get_series_stats(balance.loc["Total Preferred Equity"] if "Total Preferred Equity" in balance.index else pd.Series(index=balance.columns, dtype=int), years=years),
+        "pref_shares": get_series_stats(balance.loc["Total Preferred Equity"], years=years),
         "retained_earnings": get_series_stats(balance.loc["Retained Earnings"], years=years, dispersion_metrics=False),
-        "treasury_stock": get_series_stats(balance.loc["Treasury Stock"] if "Treasury Stock" in balance.index else pd.Series(index=balance.columns, dtype=int), years=years),
+        "treasury_stock": get_series_stats(balance.loc["Treasury Stock"], years=years),
         "roe": get_series_stats(income.loc["Net Income"] / balance.loc["Total Equity"], years=years),
+    }
+
+    return result
+
+
+def get_cash_stats(income: pd.DataFrame, cash: pd.DataFrame, years=5):
+    fcfe = cash.loc["Free Cash Flow"] + (cash.loc["Total Debt Issued"] + cash.loc["Total Debt Repaid"])
+    result = {
+        "operating_cashflow": get_series_stats(cash.loc["Cash from Operations"], years=years),
+        "capital_intensity": get_series_stats(-cash.loc["Capital Expenditure"] / income.loc["Net Income"], years=years),
+        "fcf": get_series_stats(cash.loc["Free Cash Flow"], years=years),
+        "fcf_margins": get_series_stats(cash.loc["Free Cash Flow"] / income.loc["Revenues"], years=years),
+        "earnings_to_fcf": get_series_stats(cash.loc["Free Cash Flow"] / income.loc["Net Income"], years=years),
+        "dividends_to_fcfe": get_series_stats(-cash.loc["Common Dividends Paid"] / fcfe, years=years),
+        "buybacks_to_fcfe": get_series_stats(-cash.loc["Repurchase of Common Stock"] / fcfe, years=years),
+        "d&b_to_fcfe": get_series_stats((-cash.loc["Repurchase of Common Stock"] - cash.loc["Common Dividends Paid"]) / fcfe, years=years)
     }
 
     return result
@@ -118,7 +142,7 @@ def format_yy_growth_list(yy_growth: list):
     return template.render(lst=yy_growth_adjusted, items=len(yy_growth), max_val=np.max(np.abs(yy_growth_adjusted)), scaling=10 if any([x < 0 for x in yy_growth]) else 20)
 
 
-dfs = pd.read_html("data/tikr/Texas Roadhouse, Inc. (TXRH).html")
+dfs = pd.read_html("data/tikr/Verizon Communications Inc. (VZ).html")
 
 income = parse_table(dfs[0])
 balance = parse_table(dfs[1])
@@ -130,3 +154,6 @@ print(income_table.to_html(escape=False, formatters={ 'yy_growth': format_yy_gro
 
 balance_table = pd.DataFrame(get_balance_stats(income, balance)).T
 print(balance_table.to_html(escape=False, formatters={ 'yy_growth': format_yy_growth_list, 'series': format_yy_growth_list } ))
+
+cash_table = pd.DataFrame(get_cash_stats(income, cashflow)).T
+print(cash_table.to_html(escape=False, formatters={ 'yy_growth': format_yy_growth_list, 'series': format_yy_growth_list } ))
