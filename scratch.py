@@ -7,11 +7,11 @@ import pytz
 import argparse
 
 parser = argparse.ArgumentParser(
-                    prog='Dividend Search',
-                    description='Search for companies paying a dividend')
+                    prog='scratch',
+                    description='Create list of companies paying dividends along with metrics of their financial health')
 parser.add_argument("filename", help="CSV file of symbols of companies to perform the search. The file should be ';' separated")
 parser.add_argument("-e", "--exchanges", default="", help="A comma-separated list of the exchanges to search for the stock. If left empty, the symbol will be search at the most common.")
-parser.add_argument("-o", "--output", required=True)
+parser.add_argument("-o", "--output", metavar="FILENAME", required=True)
 
 args = parser.parse_args()
 

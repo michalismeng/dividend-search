@@ -2,9 +2,9 @@ import pandas as pd
 import argparse
 
 parser = argparse.ArgumentParser(
-                    prog='Dividend Search - To HTML',
-                    description='Search for companies paying a dividend')
-parser.add_argument("filename", help="CSV file containing the parsed metrics")
+                    prog='read_data',
+                    description='Produce HTML from CSV file with financial metrics')
+parser.add_argument("filename", help="Input CSV file containing the parsed metrics")
 
 args = parser.parse_args()
 
