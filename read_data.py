@@ -11,7 +11,7 @@ args = parser.parse_args()
 df = pd.read_csv(args.filename)
 
 df = df[df["comment"] == "ok"]
-df = df[df["growth_tot"] > 0.79]
+df = df[df["growth_yy"] > 0.07]
 df = df[df["Debt Ratio"] < 5]
 df = df[df["ROE"] > 0]
 df = df[df["Sector"].str.contains("Financial Services") == False]
