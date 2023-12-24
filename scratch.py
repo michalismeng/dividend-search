@@ -110,6 +110,7 @@ def parse_stock(symbol, exchanges):
     result["Current Ratio"] = balance[latest].loc["Current Assets"] / balance[latest].loc["Current Liabilities"] if "Current Assets" in balance.index and "Current Liabilities" in balance.index else np.NaN
     result["Share Growth 3Y/Y"] = get_growth_per_year(income.loc["Diluted Average Shares"], -3) if "Diluted Average Shares" in income.index and len(income.loc["Diluted Average Shares"].dropna()) == 4 else np.NaN
     result["CapEx Ratio"] = -cash.loc["Capital Expenditure"].sum() / income.loc["Net Income"].sum() if "Capital Expenditure" in cash.index else np.NaN
+    result["Beta"] = company.info["beta"]
     try:
         result["Sector"] = "%s - %s" % (company.info["sector"], company.info["industry"])
     except Exception:
