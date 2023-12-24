@@ -53,8 +53,11 @@ def get_growth_per_year(series, year):
 
 
 def get_ticker_from_symbol(symbol, exchanges):
-    exch = exchanges[0]
-    company = yf.Ticker(symbol + ".%s" % exch)
+    if exchanges:
+        exch = exchanges[0]
+        company = yf.Ticker(symbol + ".%s" % exch)
+    else:
+        company = yf.Ticker(symbol)
     div_df = pd.DataFrame(company.dividends)
     if len(div_df) >= 6:
         return company
@@ -120,7 +123,7 @@ print("Found %s symbols" % len(stocks))
 if "Name" not in stocks:
     stocks["Name"] = stocks["Symbol"]
 
-exchanges = [e.strip() for e in args.exchanges.split(",")]
+exchanges = list(filter(lambda x: len(x), [e.strip() for e in args.exchanges.split(",")]))
 
 for index, stock in stocks.iterrows():
     print("Retrieving dividend data for:", stock["Name"], "(%s)" % stock["Symbol"])
