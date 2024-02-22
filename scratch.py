@@ -23,7 +23,7 @@ def get_dividend_stats(symbol, div_df, years_of_analysis=10):
         raise DividendException("We only do analysis of 5 or more years")
     tz = pytz.timezone(str(div_df["Date"].iloc[0].tz))
 
-    start_year = datetime.date.today().year - years_of_analysis
+    start_year = datetime.date.today().year - 1 - years_of_analysis
     div_df_10yrs = div_df[div_df["Date"] >= datetime.datetime(start_year - 1, 12, 31, tzinfo=tz)]
     div_df_10yrs_grouped = div_df_10yrs.groupby(div_df_10yrs["Date"].dt.year).sum(numeric_only=True).reset_index()
     if len(div_df_10yrs_grouped) <= 5:
@@ -119,8 +119,13 @@ def parse_stock(symbol, exchanges):
     return result
 
 datas = []
-stocks = pd.read_csv(args.filename, sep=";")
+if args.filename.endswith("ods"):
+    stocks = pd.read_excel(args.filename, engine="odf")
+else:
+    stocks = pd.read_csv(args.filename, sep=";")
+
 print("Found %s symbols" % len(stocks))
+print(stocks.head())
 if "Name" not in stocks:
     stocks["Name"] = stocks["Symbol"]
 
