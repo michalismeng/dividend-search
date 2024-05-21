@@ -1,5 +1,8 @@
 import pandas as pd
 import argparse
+import jinja2 as j2
+
+j2_env = j2.Environment()
 
 parser = argparse.ArgumentParser(
                     prog='read_data',
@@ -22,7 +25,9 @@ cols = list(df.columns[0:list(df.columns).index("outliers")]) + list(df.columns[
 df = df[cols]
 df = df.sort_values(by="symbol")
 
-print(df.to_html(index=False))
+with open("template.html.j2") as f:
+    template = j2_env.from_string(f.read())
+print(template.render(table=df.to_html(index=False, classes=["table", "table-sm", "text-center"])))
 
 
 # TODO:
