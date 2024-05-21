@@ -1,3 +1,4 @@
+import sys
 import yfinance as yf
 import pandas as pd
 import numpy as np
@@ -9,9 +10,9 @@ import argparse
 parser = argparse.ArgumentParser(
                     prog='scratch',
                     description='Create list of companies paying dividends along with metrics of their financial health')
-parser.add_argument("filename", help="CSV file of symbols of companies to perform the search. The file should be ';' separated")
+parser.add_argument("-f", "--filename", help="CSV file of symbols of companies to perform the search. The file should be ';' separated")
 parser.add_argument("-e", "--exchanges", default="", help="A comma-separated list of the exchanges to search for the stock. If left empty, the symbol will be search at the most common.")
-parser.add_argument("-o", "--output", metavar="FILENAME", required=True)
+parser.add_argument("-o", "--output", metavar="FILENAME")
 
 args = parser.parse_args()
 
@@ -119,7 +120,9 @@ def parse_stock(symbol, exchanges):
     return result
 
 datas = []
-if args.filename.endswith("ods"):
+if args.filename == "-":
+    stocks = pd.read_csv(sys.stdin, sep=";")
+elif args.filename.endswith("ods"):
     stocks = pd.read_excel(args.filename, engine="odf")
 else:
     stocks = pd.read_csv(args.filename, sep=";")
@@ -143,8 +146,10 @@ for index, stock in stocks.iterrows():
         datas.append({ "symbol": stock["Symbol"], "comment": "Exception when parsing" })
 
 df = pd.DataFrame(datas)
-df.to_csv("%s.csv" % args.output, index=False)
-df.to_parquet("%s.pkt" % args.output)
+if args.output:
+    df.to_csv("%s.csv" % args.output, index=False)
+else:
+    print(df.to_csv(None, index=False))
 
 # benchmark = ["KO", "MCO", "SPGI", "UNP", "WFC", "PEP", "BUD", "TAP", "KHC", "PM", "AXP", "WMT"]
 # anti_benchmark = ["GM", "PG", "UAL", "AAL", "GT"]
