@@ -23,3 +23,9 @@ df = df[cols]
 df = df.sort_values(by="symbol")
 
 print(df.to_html(index=False))
+
+
+# TODO:
+# 1. Beautify output html
+# 2. Input / Output should support stdin / stdout
+# 3. Same for scratch.py

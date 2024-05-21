@@ -64,7 +64,10 @@ def get_ticker_from_symbol(symbol, exchanges):
         return company
     elif len(div_df) == 0 and len(exchanges) - 1 > 0:
         return get_ticker_from_symbol(symbol, exchanges[1:])
-    raise DividendException({ "symbol": symbol + ".%s" % exch, "error": "Too few dividends" })
+    if exchanges:
+        raise DividendException({ "symbol": symbol + ".%s" % exch, "error": "Too few dividends" })
+    else:
+        raise DividendException({ "symbol": symbol, "error": "Too few dividends" })
 
 
 def get_net_debt(balance):
@@ -143,11 +146,12 @@ for index, stock in stocks.iterrows():
         datas.append({ "symbol": e.args[0]["symbol"], "comment": e.args[0]["error"] })
     except Exception as e:
         print("Could not process symbol %s" % stock["Symbol"])
+        print(e)
         datas.append({ "symbol": stock["Symbol"], "comment": "Exception when parsing" })
 
 df = pd.DataFrame(datas)
 if args.output:
-    df.to_csv("%s.csv" % args.output, index=False)
+    df.to_csv("%s" % args.output, index=False)
 else:
     print(df.to_csv(None, index=False))
 
