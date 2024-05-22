@@ -2,10 +2,14 @@ pipeline {
     agent any
 
     parameters {
-        base64File 'exchcomp'
-        string 'exchange'
-        string 'exchanges'
+        base64File name: 'exchcomp',
+            description: 'The CSV containing the list of companies in the desired stock exchange.'
+        string name: 'exchange',
+            description: 'A shorthand name to prepend to all artifacts. Should contain the stock exchange name.'
+        string name: 'exchanges'
+            description: 'A comma-separated list of the Yahoo Finance exchanges to look for a stock (e.g., EPA,BR,AS)'
         string 'title'
+            description: 'The title for this build'
     }
 
     environment{
@@ -35,7 +39,7 @@ pipeline {
                         . python_venv/bin/activate
                         python3 -m pip install -r requirements.txt
                         python3 -u scratch.py -e $exchanges -f "$exchcomp" -o _data/${exchange}-dividend-data-${now}.csv
-                        cp "$exchcomp" _data
+                        cat "$exchcomp" > _data/${exchange}-listed-companies.csv
                         deactivate
                     """
                 }
