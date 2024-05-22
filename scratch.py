@@ -25,10 +25,14 @@ def get_dividend_stats(symbol, div_df, years_of_analysis=10):
     tz = pytz.timezone(str(div_df["Date"].iloc[0].tz))
 
     start_year = datetime.date.today().year - 1 - years_of_analysis
-    div_df_10yrs = div_df[div_df["Date"] >= datetime.datetime(start_year - 1, 12, 31, tzinfo=tz)]
+    start_date = datetime.datetime(start_year - 1, 12, 31, tzinfo=tz)
+    end_year = datetime.date.today().year - 1
+    end_date = datetime.datetime(end_year, 12, 31, tzinfo=tz)
+    print("Examining period from %s to %s" % (start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d")))
+    div_df_10yrs = div_df[(div_df["Date"] >= start_date) & (div_df["Date"] <= end_date)]
     div_df_10yrs_grouped = div_df_10yrs.groupby(div_df_10yrs["Date"].dt.year).sum(numeric_only=True).reset_index()
     if len(div_df_10yrs_grouped) <= 5:
-        raise DividendException({ "symbol": symbol, "error": "Too few dividends" })
+        raise DividendException({ "Symbol": symbol, "error": "Too few dividends (%s years)" % len(div_df_10yrs_grouped) })
 
     all_years = pd.Series(range(div_df_10yrs_grouped["Date"].min(), div_df_10yrs_grouped["Date"].max() + 1))
 
@@ -36,15 +40,15 @@ def get_dividend_stats(symbol, div_df, years_of_analysis=10):
     missing_dividend_years = all_years[all_years.isin(div_df_10yrs_grouped["Date"]) == False]
 
     return {
-        "symbol": symbol,
-        "growth_tot": div_df_10yrs_grouped["Dividends"].pct_change(periods=year_10).iloc[-1],
-        "growth_yy": get_growth_per_year(div_df_10yrs_grouped["Dividends"], year_10),
-        "growth_yy_5": get_growth_per_year(div_df_10yrs_grouped["Dividends"], 5),
-        "growth_yy_3": get_growth_per_year(div_df_10yrs_grouped["Dividends"], 3),
-        "growth_yy_1": get_growth_per_year(div_df_10yrs_grouped["Dividends"], 1),
-        "years": year_10,
-        "missing_dividend_years_cnt": missing_dividend_years.count(),
-        "outliers": div_df_10yrs_grouped[(np.abs(stats.zscore(div_df_10yrs_grouped["Dividends"])) > 2)].to_dict(orient="records"),
+        "Symbol": symbol,
+        "Growth Tot": div_df_10yrs_grouped["Dividends"].pct_change(periods=year_10).iloc[-1],
+        "Growth Y/Y": get_growth_per_year(div_df_10yrs_grouped["Dividends"], year_10),
+        "Growth 5Y/Y": get_growth_per_year(div_df_10yrs_grouped["Dividends"], 5),
+        "Growth 3Y/Y": get_growth_per_year(div_df_10yrs_grouped["Dividends"], 3),
+        "Growth 1Y/Y": get_growth_per_year(div_df_10yrs_grouped["Dividends"], 1),
+        "Years": year_10,
+        "Missing Years": missing_dividend_years.count(),
+        "Outliers": div_df_10yrs_grouped[(np.abs(stats.zscore(div_df_10yrs_grouped["Dividends"])) > 2)].to_dict(orient="records"),
     }
 
 
@@ -54,20 +58,14 @@ def get_growth_per_year(series, year):
 
 
 def get_ticker_from_symbol(symbol, exchanges):
-    if exchanges:
-        exch = exchanges[0]
-        company = yf.Ticker(symbol + ".%s" % exch)
-    else:
-        company = yf.Ticker(symbol)
+    symbol_exch = symbol + ".%s" % exchanges[0] if exchanges else symbol
+    company = yf.Ticker(symbol_exch)
     div_df = pd.DataFrame(company.dividends)
     if len(div_df) >= 6:
         return company
     elif len(div_df) == 0 and len(exchanges) - 1 > 0:
         return get_ticker_from_symbol(symbol, exchanges[1:])
-    if exchanges:
-        raise DividendException({ "symbol": symbol + ".%s" % exch, "error": "Too few dividends" })
-    else:
-        raise DividendException({ "symbol": symbol, "error": "Too few dividends" })
+    raise DividendException({ "Symbol": symbol_exch, "error": "Too few dividends (%s records)" % len(div_df) })
 
 
 def get_net_debt(balance):
@@ -143,12 +141,13 @@ for index, stock in stocks.iterrows():
         data = parse_stock(stock["Symbol"], exchanges=exchanges)
         datas.append({ **data, "comment": "ok" })
     except DividendException as e:
-        datas.append({ "symbol": e.args[0]["symbol"], "comment": e.args[0]["error"] })
+        datas.append({ "Symbol": e.args[0]["Symbol"], "comment": e.args[0]["error"] })
     except Exception as e:
         print("Could not process symbol %s" % stock["Symbol"])
         print(e)
-        datas.append({ "symbol": stock["Symbol"], "comment": "Exception when parsing" })
+        datas.append({ "Symbol": stock["Symbol"], "comment": "Exception when parsing" })
 
+print("======= Printing Output =======")
 df = pd.DataFrame(datas)
 if args.output:
     df.to_csv("%s" % args.output, index=False)

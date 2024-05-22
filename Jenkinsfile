@@ -5,6 +5,7 @@ pipeline {
         base64File 'exchcomp'
         string 'exchange'
         string 'exchanges'
+        string 'title'
     }
 
     environment{
@@ -20,6 +21,9 @@ pipeline {
                     // Do a ls -lart to view all the files are cloned. It will be clonned. This is just for you to be sure about it.
                     sh "ls -lart ./*"
                     sh "mkdir -p _data"
+                    if (title != null){
+                        currentBuild.displayName = "${title}"
+                    }
                 } 
             }
         }
@@ -43,6 +47,7 @@ pipeline {
                     python3 -m venv python_venv
                     . python_venv/bin/activate
                     python3 -m pip install -r requirements.txt
+                    python3 -u read_data.py _data/${exchange}-dividend-data-${now}.csv --no-filter | tee _data/${exchange}-dividend-data-unfiltered-${now}.html
                     python3 -u read_data.py _data/${exchange}-dividend-data-${now}.csv | tee _data/${exchange}-dividend-data-filtered-${now}.html
                     deactivate
                 """

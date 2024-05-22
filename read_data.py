@@ -16,14 +16,14 @@ df = pd.read_csv(args.filename)
 
 if args.filter:
     df = df[df["comment"] == "ok"]
-    df = df[df["growth_yy"] > 0.07]
+    df = df[df["Growth Y/Y"] > 0.07]
     df = df[df["Debt Ratio"] < 5]
     df = df[df["ROE"] > 0]
     df = df[df["Sector"].str.contains("Financial Services") == False]
 
-cols = list(df.columns[0:list(df.columns).index("outliers")]) + list(df.columns[list(df.columns).index("outliers") + 1:]) + ["outliers"]
+cols = list(df.columns[0:list(df.columns).index("Outliers")]) + list(df.columns[list(df.columns).index("Outliers") + 1:]) + ["Outliers"]
 df = df[cols]
-df = df.sort_values(by="symbol")
+df = df.sort_values(by="Symbol")
 
 with open("template.html.j2") as f:
     template = j2_env.from_string(f.read())
