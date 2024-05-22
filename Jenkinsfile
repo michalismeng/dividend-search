@@ -6,9 +6,9 @@ pipeline {
             description: 'The CSV containing the list of companies in the desired stock exchange.'
         string name: 'exchange',
             description: 'A shorthand name to prepend to all artifacts. Should contain the stock exchange name.'
-        string name: 'exchanges'
+        string name: 'exchanges',
             description: 'A comma-separated list of the Yahoo Finance exchanges to look for a stock (e.g., EPA,BR,AS)'
-        string 'title'
+        string name: 'title',
             description: 'The title for this build'
     }
 
