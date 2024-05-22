@@ -35,7 +35,7 @@ pipeline {
                         . python_venv/bin/activate
                         python3 -m pip install -r requirements.txt
                         python3 -u scratch.py -e $exchanges -f "$exchcomp" -o _data/${exchange}-dividend-data-${now}.csv
-                        cat "$exchcomp" > _data/${exchange}-listed-companies-${now}.csv
+                        cp "$exchcomp" _data
                         deactivate
                     """
                 }
