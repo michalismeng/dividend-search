@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     parameters {
-        base64File name: 'exchcomp',
+        stashedFile name: 'exchcomp.csv',
             description: 'The CSV containing the list of companies in the desired stock exchange.'
         string name: 'exchange',
             description: 'A shorthand name to prepend to all artifacts. Should contain the stock exchange name.'
@@ -33,16 +33,15 @@ pipeline {
         }
         stage('Perform Scratch Search') {
             steps {
-                withFileParameter('exchcomp') {
-                    sh """
-                        python3 -m venv python_venv
-                        . python_venv/bin/activate
-                        python3 -m pip install -r requirements.txt
-                        python3 -u scratch.py -e $exchanges -f "$exchcomp" -o _data/${exchange}-dividend-data-${now}.csv
-                        cat "$exchcomp" > _data/${exchange}-listed-companies.csv
-                        deactivate
-                    """
-                }
+                unstash 'exchcomp.csv'
+                sh """
+                    python3 -m venv python_venv
+                    . python_venv/bin/activate
+                    python3 -m pip install -r requirements.txt
+                    python3 -u scratch.py -e $exchanges -f exchcomp.csv -o _data/${exchange}-dividend-data-${now}.csv
+                    cat exchcomp.csv > _data/${exchange}-listed-companies.csv
+                    deactivate
+                """
             }
         }
         stage('Filter Data') {
