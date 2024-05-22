@@ -16,7 +16,7 @@ df = pd.read_csv(args.filename)
 
 if args.filter:
     df = df[df["comment"] == "ok"]
-    df = df[df["Growth Y/Y"] > 0.07]
+    df = df[df["Net Margin"] > 0]
     df = df[df["Debt Ratio"] < 5]
     df = df[df["ROE"] > 0]
     df = df[df["Sector"].str.contains("Financial Services") == False]
@@ -28,9 +28,3 @@ df = df.sort_values(by="Symbol")
 with open("template.html.j2") as f:
     template = j2_env.from_string(f.read())
 print(template.render(table=df.to_html(index=False, classes=["table", "table-sm", "text-center"])))
-
-
-# TODO:
-# 1. Beautify output html
-# 2. Input / Output should support stdin / stdout
-# 3. Same for scratch.py
