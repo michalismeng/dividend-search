@@ -1,0 +1,30 @@
+---
+referenceDate: {{rdate}}
+type: competitive-profile
+cssClasses: wide-table
+---
+
+## General
+
+{{representatives}}
+
+## Charts
+
+{% for key in metrics %}
+
+### {{metrics[key].title}}
+```chart
+type: line
+id: {{key}}
+layout: rows
+width: 100%
+beginAtZero: false
+```
+{% endfor %}
+
+## Appendix: Raw Data
+
+{% for key in metrics %}
+{{metrics[key].companies}}
+^{{key}}
+{% endfor %}
