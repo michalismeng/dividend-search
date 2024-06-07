@@ -9,7 +9,7 @@ import argparse
 parser = argparse.ArgumentParser(
                     prog='parse_tikr',
                     description='Produce HTML with processed financials from TIKR HTML full financials')
-parser.add_argument("filename", help="Input HTML containing at least the 3 financial tables: income, balance, cashflow")
+parser.add_argument("-f", "--filename", help="Input HTML containing at least the 3 financial tables: income, balance, cashflow")
 
 args = parser.parse_args()
 
@@ -74,6 +74,11 @@ def get_series_stats(series, years=5, dispersion_metrics=True):
     })
     return metrics
 
+def get_dividends(income):
+    if "special dividends per share" in income.index:
+        return income.loc["dividends per share"] + income.loc["special dividends per share"]
+    else:
+        return income.loc["dividends per share"]
 
 def get_income_stats(income: pd.DataFrame, years=5):
     result = {
@@ -90,9 +95,9 @@ def get_income_stats(income: pd.DataFrame, years=5):
         "net_income_margin": get_series_stats(income.loc["net income to common excl. extra items"] / income.loc["revenues"], years=years),
         "diluted_shares": get_series_stats(income.loc["weighted average diluted shares outstanding"], years=years, dispersion_metrics=False),
         "eps": get_series_stats(income.loc["diluted eps excl extra items"], dispersion_metrics=False, years=years),
-        "dividends": get_series_stats(income.loc["dividends per share"], years=years),
-        "payout": get_series_stats(income.loc["dividends per share"] * income.loc["weighted average diluted shares outstanding"] / income.loc["net income"], years=years),
-        "missing_dividend_years": get_series_stats(pd.Series(((income.loc["dividends per share"] == 0)|(income.loc["dividends per share"].isna())).sum(), index=income.columns)),
+        "dividends": get_series_stats(get_dividends(income), years=years),
+        "payout": get_series_stats(get_dividends(income), years=years),
+        "missing_dividend_years": get_series_stats(pd.Series(((get_dividends(income) == 0)|(income.loc["dividends per share"].isna())).sum(), index=income.columns)),
     }
 
     return result
@@ -102,10 +107,10 @@ def get_income_stats(income: pd.DataFrame, years=5):
 def get_balance_stats(income: pd.DataFrame, balance: pd.DataFrame, years=5):
     result = {
         "cash": get_series_stats(balance.loc["Cash And Equivalents"], years=years),
-        "inventory_margin": get_series_stats(balance.loc["Inventory"] / income.loc["revenues"], years=years),
+        "inventory_margin": get_series_stats(balance.loc["Inventory"] / income.loc["revenues"], years=years) if "Inventory" in balance.index else np.NaN,
         "accounts_recv_margin": get_series_stats(balance.loc["Accounts Receivable"] / income.loc["revenues"], years=years), # TIKR provides NET Accounts Receivables under this name
         "current_ratio": get_series_stats(balance.loc["Total Current Assets"] / balance.loc["Total Current Liabilities"], years=years),
-        "goodwill": get_series_stats(balance.loc["Goodwill"], years=years),
+        "goodwill": get_series_stats(balance.loc["Goodwill"], years=years) if "Goodwill" in balance.index else np.NaN,
         "assets": get_series_stats(balance.loc["Total Assets"], years=years),
         "roa": get_series_stats(income.loc["net income to common excl. extra items"] / balance.loc["Total Assets"], years=years),
         "net_debt": get_series_stats(balance.loc["Net Debt"], years=years),
